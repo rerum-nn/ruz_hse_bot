@@ -1,4 +1,4 @@
-from multilangual import languages
+import multilangual as ml
 from ruz_exceptions import WrongLanguage
 
 
@@ -41,7 +41,7 @@ class User:
         then raise the WrongLanguage exception
         :param lang:
         '''
-        if lang in languages:
+        if lang in ml.languages:
             self.__language = lang
         else:
             wl = WrongLanguage
@@ -63,14 +63,32 @@ class User:
         '''
         self.__ruz_id = value
 
-    def __init__(self, telegram_id, language):
+    def __init__(self, telegram_id='', language="ru"):
         self.__telegram_id = telegram_id
-        self.__language = language
+        self.language = language
+
+    @staticmethod
+    def load_from_dict(d: dict):
+        u = User()
+        u.__telegram_id = d['telegram_id']
+        u.__language = d['language']
+        u.__ruz_id = d['ruz_id']
+        return u
 
     def __eq__(self, other):
-        if isinstance(other, (User, str)):
+        if not isinstance(other, (User, str)):
             raise TypeError("Right operand must be <class 'User'> or str")
-        tid = other if isinstance(other, int) else other.__telegram_id
+        tid = other if isinstance(other, str) else other.__telegram_id
         return self.__telegram_id == tid
 
+    def to_dict(self):
+        return {
+            'telegram_id': self.__telegram_id,
+            'ruz_id': self.__ruz_id,
+            'language': self.__language
+        }
 
+
+def get_str_for_user(user: User, msg: str) -> str:
+    lang = user.language
+    return ml.language_packs[lang][msg]

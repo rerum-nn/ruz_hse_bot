@@ -1,10 +1,14 @@
 import requests
 import json
 import telebot
+import multilangual as ml
 from telebot import types
 from config import token
-from user import User
+from user import User, get_str_for_user
+from database_of_users import DatabaseOfUsers
 
+
+d = DatabaseOfUsers('databases/database.json')
 bot = telebot.TeleBot(token)
 
 
@@ -17,12 +21,12 @@ def search_id(term, type):
 
 @bot.message_handler(commands=['start'])
 def start_message(message: types.Message):
-
-    bot.send_message(message.chat.id, 'Привет👋, введи свои имя, чтобы бот смог найти твое расписание')
-
-def print_results_of_search():
-
+    user = User(message.from_user.id, ml.select_language_or_default(message.from_user.language_code))
+    d.add_new_user(user)
+    d.dump()
+    bot.send_message(message.chat.id, get_str_for_user(user, 'Hello'))
 
 
 if __name__ == '__main__':
+    ml.load_language_packs()
     bot.infinity_polling()
