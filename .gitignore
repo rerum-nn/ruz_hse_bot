@@ -1,0 +1,8 @@
+.pytest_cache
+venv
+.idea
+__pycache__
+config.py
+databases
+test_database_of_user.py
+test_user.py
