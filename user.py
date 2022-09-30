@@ -19,6 +19,7 @@ class User:
     __telegram_id = ''
     __language = ""
     __ruz_id = ''
+    __stage = 0
 
     @property
     def telegram_id(self) -> str:
@@ -63,9 +64,18 @@ class User:
         '''
         self.__ruz_id = value
 
+    @property
+    def stage(self):
+        return self.__stage
+
+    @stage.setter
+    def stage(self, value):
+        self.__stage = value
+
     def __init__(self, telegram_id='', language="ru"):
         self.__telegram_id = telegram_id
         self.language = language
+        self.__stage = 0
 
     @staticmethod
     def load_from_dict(d: dict):
@@ -73,6 +83,7 @@ class User:
         u.__telegram_id = d['telegram_id']
         u.__language = d['language']
         u.__ruz_id = d['ruz_id']
+        u.__stage = d['stage']
         return u
 
     def __eq__(self, other):
@@ -85,7 +96,8 @@ class User:
         return {
             'telegram_id': self.__telegram_id,
             'ruz_id': self.__ruz_id,
-            'language': self.__language
+            'language': self.__language,
+            'stage': self.__stage
         }
 
 

@@ -47,4 +47,11 @@ class DatabaseOfUsers:
         with open(self.__path_to_database, 'w', encoding='utf-8') as file:
             json.dump([user.to_dict() for user in self.__users], file, ensure_ascii=False, indent=4)
 
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            item = str(item)
+        if not isinstance(item, (str, User)):
+            raise TypeError("Argument must be str or <class 'User'>")
+
+        return self.__users[self.__users.index(item)]
 

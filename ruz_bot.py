@@ -18,13 +18,26 @@ def search_id(term, type):
     data = response.json()
     return data
 
-
 @bot.message_handler(commands=['start'])
 def start_message(message: types.Message):
-    user = User(message.from_user.id, ml.select_language_or_default(message.from_user.language_code))
+    user = User(str(message.from_user.id), ml.select_language_or_default(message.from_user.language_code))
     d.add_new_user(user)
     d.dump()
     bot.send_message(message.chat.id, get_str_for_user(user, 'Hello'))
+
+
+@bot.message_handler(func=lambda message: d.get_user_information_by_id(str(message.from_user.id)).stage == 0)
+def search_message(message: types.Message):
+    data = search_id(message.text.strip(), 'student')
+    if len(data) == 0:
+        bot.send_message(message.chat.id, get_str_for_user(d[message.from_user.id], "No results"))
+    elif len(data) >= 7:
+        bot.send_message(message.chat.id, get_str_for_user(d[message.from_user.id], "A lot results"))
+    else:
+        answer = ''
+        for i, student in enumerate(data, 1):
+            answer += f'{i}. {student["label"]}\n\t{student["description"]}\n\n'
+        bot.send_message(message.chat.id, answer)
 
 
 if __name__ == '__main__':

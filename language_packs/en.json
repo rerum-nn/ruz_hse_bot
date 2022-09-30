@@ -1,3 +1,5 @@
 {
-  "Hello": "Hi\uD83D\uDC4B, enter your name so that the bot can find your schedule"
+  "Hello": "Hi\uD83D\uDC4B, enter your name so that the bot can find your schedule",
+  "A lot results": "There are too many results, specify the name",
+  "No results": "Unfortunately, no students with this name were found, check the entered name for mistakes"
 }
