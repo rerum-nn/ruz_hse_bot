@@ -1,5 +1,8 @@
+import requests
 import telebot
 import multilangual as ml
+import datetime
+from datetime import date
 from telebot import types
 from config import token
 from user import User, get_str_for_user
@@ -31,8 +34,10 @@ def search_message(message: types.Message):
     elif search.size == 1:
         d[message.from_user.id].ruz_id = search.data[0]['id']
         d.dump()
+        # d[message.from_user.id].stage = 1
         bot.send_message(message.from_user.id, f"{get_str_for_user(d[message.from_user.id], 'Student found')}:"
                                                f"\n\n{search.data[0]['label']}\n{search.data[0]['description']}")
+        show_schedule_for_user(d[message.from_user.id])
     else:
         answer = f'{get_str_for_user(d[message.from_user.id], "Choice student")}:\n\n'
         keyboard = types.InlineKeyboardMarkup()
@@ -49,9 +54,50 @@ def choice_student_callback(call: types.CallbackQuery):
     choice = int(call.data) - 1
     d[call.from_user.id].ruz_id = search.data[choice]['id']
     d.dump()
+    # d[call.from_user.id].stage = 1
     bot.send_message(call.message.chat.id, f'{get_str_for_user(d[call.from_user.id], "Successfully choice")}:\n\n'
                                            f'{search.data[choice]["label"]}\n'
                                            f'       {search.data[choice]["description"]}')
+    show_schedule_for_user(d[call.from_user.id])
+
+
+def show_schedule_for_user(user: User):
+    week_begin = date.today() - datetime.timedelta(days=date.today().weekday())
+    week_end = week_begin + datetime.timedelta(days=7)
+    response = requests.get(f'https://ruz.hse.ru/api/schedule/student/{user.ruz_id}'
+                            f'?start={week_begin.strftime("%Y.%m.%d")}'
+                            f'&finish={week_end.strftime("%Y.%m.%d")}'
+                            f'&lng={"1" if user.language == "ru" else "2"}').json()
+
+    weekdays_answer = [
+        f"Понедельник ({week_begin.strftime('%Y.%m.%d')}):\n",
+        f"Вторник ({(week_begin + datetime.timedelta(days=1)).strftime('%Y.%m.%d')}):\n\n",
+        f"Среда ({(week_begin + datetime.timedelta(days=2)).strftime('%Y.%m.%d')}):\n\n",
+        f"Четверг ({(week_begin + datetime.timedelta(days=3)).strftime('%Y.%m.%d')}):\n\n",
+        f"Пятница ({(week_begin + datetime.timedelta(days=4)).strftime('%Y.%m.%d')}):\n\n",
+        f"Суббота ({(week_begin + datetime.timedelta(days=5)).strftime('%Y.%m.%d')}):\n\n"
+    ]
+
+    weekdays_have_lessons = [False]*6
+
+    for lecture in response:
+        weekdays_have_lessons[lecture['dayOfWeek'] - 1] = True
+        weekdays_answer[lecture['dayOfWeek'] - 1] +=\
+            f'*({lecture["beginLesson"]}-{lecture["endLesson"]}) {lecture["discipline"]}* \n' \
+            f'({lecture["kindOfWork"]}) \n' \
+            f'_{lecture["auditorium"]} ({lecture["building"]})_\n' \
+            f'{lecture["lecturer"]}\n'
+        if lecture['note']:
+            weekdays_answer[lecture['dayOfWeek'] - 1] += f'_{lecture["note"]}_\n'
+        if lecture['url1']:
+            weekdays_answer[lecture['dayOfWeek'] - 1] += f'{lecture["url1"]}\n'
+        weekdays_answer[lecture['dayOfWeek'] - 1] += '\n\n'
+
+    for weekday, bo in zip(weekdays_answer, weekdays_have_lessons):
+        if bo:
+            bot.send_message(user.telegram_id, weekday, disable_web_page_preview=True, parse_mode="Markdown")
+
+
 
 
 if __name__ == '__main__':
