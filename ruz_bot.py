@@ -34,10 +34,11 @@ def search_message(message: types.Message):
     elif search.size == 1:
         d[message.from_user.id].ruz_id = search.data[0]['id']
         d.dump()
-        # d[message.from_user.id].stage = 1
+        d[message.from_user.id].stage = 1
         bot.send_message(message.from_user.id, f"{get_str_for_user(d[message.from_user.id], 'Student found')}:"
                                                f"\n\n{search.data[0]['label']}\n{search.data[0]['description']}")
         show_schedule_for_user(d[message.from_user.id])
+        d.dump()
     else:
         answer = f'{get_str_for_user(d[message.from_user.id], "Choice student")}:\n\n'
         keyboard = types.InlineKeyboardMarkup()
@@ -54,11 +55,12 @@ def choice_student_callback(call: types.CallbackQuery):
     choice = int(call.data) - 1
     d[call.from_user.id].ruz_id = search.data[choice]['id']
     d.dump()
-    # d[call.from_user.id].stage = 1
+    d[call.from_user.id].stage = 1
     bot.send_message(call.message.chat.id, f'{get_str_for_user(d[call.from_user.id], "Successfully choice")}:\n\n'
                                            f'{search.data[choice]["label"]}\n'
                                            f'       {search.data[choice]["description"]}')
     show_schedule_for_user(d[call.from_user.id])
+    d.dump()
 
 
 def show_schedule_for_user(user: User):
@@ -93,12 +95,23 @@ def show_schedule_for_user(user: User):
             weekdays_answer[lecture['dayOfWeek'] - 1] += f'{lecture["url1"]}\n'
         weekdays_answer[lecture['dayOfWeek'] - 1] += '\n\n'
 
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    button1 = types.KeyboardButton("Поменять студента")
+    keyboard.add(button1)
+
+    if not any(weekdays_have_lessons):
+        bot.send_message(user.telegram_id, "Похоже, что у вас нет пар, радуйтесь:) или тревожьтесь!", reply_markup=keyboard)
+
     for weekday, bo in zip(weekdays_answer, weekdays_have_lessons):
         if bo:
-            bot.send_message(user.telegram_id, weekday, disable_web_page_preview=True, parse_mode="Markdown")
+            bot.send_message(user.telegram_id, weekday, disable_web_page_preview=True, parse_mode="Markdown", reply_markup=keyboard)
 
 
-
+@bot.message_handler(func=lambda message: message.text == "Поменять студента")
+def change_student(message: types.Message):
+    d[message.from_user.id].stage = 0
+    bot.send_message(message.from_user.id, "Введите имя студента, расписание которого вам нужно", reply_markup=types.ReplyKeyboardRemove())
+    d.dump()
 
 if __name__ == '__main__':
     ml.load_language_packs()
