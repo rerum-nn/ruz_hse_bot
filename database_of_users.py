@@ -39,7 +39,7 @@ class DatabaseOfUsers:
             self.__users[self.__users.index(user)].language = user.language
             self.__users[self.__users.index(user)].stage = 0
 
-    def delete_user(self, user: User | str) -> None:
+    def delete_user(self, user: (User, str)) -> None:
         if user in self.__users:
             self.__users.remove(user)
             self.__count_of_users -= 1
