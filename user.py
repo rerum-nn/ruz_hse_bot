@@ -20,6 +20,8 @@ class User:
     __language = ""
     __ruz_id = ''
     __stage = 0
+    __mode = 0
+    __show_empty_days = [True]*6 + [False]
 
     @property
     def telegram_id(self) -> str:
@@ -72,10 +74,20 @@ class User:
     def stage(self, value):
         self.__stage = value
 
+    @property
+    def mode(self):
+        return self.__mode
+    
+    @mode.setter
+    def mode(self, value):
+        self.__mode = value
+
     def __init__(self, telegram_id='', language="ru"):
         self.__telegram_id = telegram_id
         self.language = language
         self.__stage = 0
+        self.__mode = 0
+        self.__show_empty_days = [True]*6 + [False]
 
     @staticmethod
     def load_from_dict(d: dict):
@@ -84,6 +96,8 @@ class User:
         u.__language = d['language']
         u.__ruz_id = d['ruz_id']
         u.__stage = d['stage']
+        u.__mode = d['mode']
+        u.__show_empty_days = d['show_empty_days']
         return u
 
     def __eq__(self, other):
@@ -97,8 +111,19 @@ class User:
             'telegram_id': self.__telegram_id,
             'ruz_id': self.__ruz_id,
             'language': self.__language,
-            'stage': self.__stage
+            'stage': self.__stage,
+            'mode': self.__mode,
+            'show_empty_days': self.__show_empty_days
         }
+
+    def get_show_empty_day(self, day: int):
+        return self.__show_empty_days[day]
+
+    def set_show_empty_day(self, day: int, mode=True):
+        self.__show_empty_days[day] = mode
+
+    def change_show_empty_day(self, day: int):
+        self.__show_empty_days[day] = not self.__show_empty_days[day]
 
 
 def get_str_for_user(user: User, msg: str) -> str:

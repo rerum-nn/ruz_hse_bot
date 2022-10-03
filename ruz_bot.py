@@ -1,8 +1,8 @@
 import requests
 import telebot
 import multilangual as ml
-import datetime
-from datetime import date
+import datetime as dt
+from datetime import date, datetime
 from telebot import types
 from config import token
 from user import User, get_str_for_user
@@ -11,9 +11,21 @@ from search import Search
 
 numbers_emoji = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣']
 
+menu_keyboard = types.ReplyKeyboardMarkup()
 search = Search()
 d = DatabaseOfUsers('databases/database.json')
 bot = telebot.TeleBot(token)
+
+modes_of_print = ["Еженедельное расписание", "Ежедневное расписание"]
+
+
+def init_keyboard_settings():
+    main_button1 = types.KeyboardButton("Поменять студента")
+    main_button2 = types.KeyboardButton("Изменить режим отображения")
+    menu_keyboard.add(main_button1)
+    menu_keyboard.add(main_button2)
+    menu_keyboard.resize_keyboard = True
+    menu_keyboard.one_time_keyboard = True
 
 
 @bot.message_handler(commands=['start'])
@@ -37,7 +49,7 @@ def search_message(message: types.Message):
         d[message.from_user.id].stage = 1
         bot.send_message(message.from_user.id, f"{get_str_for_user(d[message.from_user.id], 'Student found')}:"
                                                f"\n\n{search.data[0]['label']}\n{search.data[0]['description']}")
-        show_schedule_for_user(d[message.from_user.id])
+        choice_the_mode_of_print(d[message.from_user.id])
         d.dump()
     else:
         answer = f'{get_str_for_user(d[message.from_user.id], "Choice student")}:\n\n'
@@ -59,52 +71,64 @@ def choice_student_callback(call: types.CallbackQuery):
     bot.send_message(call.message.chat.id, f'{get_str_for_user(d[call.from_user.id], "Successfully choice")}:\n\n'
                                            f'{search.data[choice]["label"]}\n'
                                            f'       {search.data[choice]["description"]}')
-    show_schedule_for_user(d[call.from_user.id])
+    choice_the_mode_of_print(d[call.from_user.id])
     d.dump()
 
 
-def show_schedule_for_user(user: User):
-    week_begin = date.today() - datetime.timedelta(days=date.today().weekday())
-    week_end = week_begin + datetime.timedelta(days=7)
+def choice_the_mode_of_print(user: User):
+    if user.mode == 0:
+        show_week_schedule_for_user(user)
+    elif user.mode == 1:
+        show_everyday_schedule_for_user(user)
+
+
+def show_everyday_schedule_for_user(user: User):
+    day = (datetime.today() + dt.timedelta(hours=3)).date()
+
+    if not show_schedule_on_day(user, day, menu_keyboard):
+        bot.send_message(user.telegram_id, "Похоже, что у вас нет завтра пар", reply_markup=menu_keyboard)
+
+
+def show_week_schedule_for_user(user: User):
+    week_begin = date.today() + dt.timedelta(days=1)
+    week_begin = week_begin - dt.timedelta(days=week_begin.weekday())
+
+    lessons_on_week = False
+
+    for week_day in [week_begin + dt.timedelta(days=i) for i in range(7)]:
+        lessons_on_week = show_schedule_on_day(user, week_day, menu_keyboard) or lessons_on_week
+
+    if not lessons_on_week:
+        bot.send_message(user.telegram_id, "Похоже, что у вас нет пар на этой неделе, радуйтесь:) или тревожьтесь!", reply_markup=menu_keyboard)
+
+
+def show_schedule_on_day(user: User, dt_: date, keyboard = types.ReplyKeyboardRemove()):
     response = requests.get(f'https://ruz.hse.ru/api/schedule/student/{user.ruz_id}'
-                            f'?start={week_begin.strftime("%Y.%m.%d")}'
-                            f'&finish={week_end.strftime("%Y.%m.%d")}'
-                            f'&lng={"1" if user.language == "ru" else "2"}').json()
+                           f'?start={dt_.strftime("%Y.%m.%d")}'
+                           f'&finish={dt_.strftime("%Y.%m.%d")}'
+                           f'&lng={"1" if user.language == "ru" else "2"}').json()
 
-    weekdays_answer = [
-        f"Понедельник ({week_begin.strftime('%Y.%m.%d')}):\n",
-        f"Вторник ({(week_begin + datetime.timedelta(days=1)).strftime('%Y.%m.%d')}):\n\n",
-        f"Среда ({(week_begin + datetime.timedelta(days=2)).strftime('%Y.%m.%d')}):\n\n",
-        f"Четверг ({(week_begin + datetime.timedelta(days=3)).strftime('%Y.%m.%d')}):\n\n",
-        f"Пятница ({(week_begin + datetime.timedelta(days=4)).strftime('%Y.%m.%d')}):\n\n",
-        f"Суббота ({(week_begin + datetime.timedelta(days=5)).strftime('%Y.%m.%d')}):\n\n"
-    ]
-
-    weekdays_have_lessons = [False]*6
+    answer = get_str_for_user(user, f'{dt_.weekday()}_week') + f' ({dt_.strftime("%d.%m.%Y")}):\n\n'
 
     for lecture in response:
-        weekdays_have_lessons[lecture['dayOfWeek'] - 1] = True
-        weekdays_answer[lecture['dayOfWeek'] - 1] +=\
-            f'*({lecture["beginLesson"]}-{lecture["endLesson"]}) {lecture["discipline"]}* \n' \
+        answer += f'*({lecture["beginLesson"]}-{lecture["endLesson"]}) {lecture["discipline"]}* \n' \
             f'({lecture["kindOfWork"]}) \n' \
             f'_{lecture["auditorium"]} ({lecture["building"]})_\n' \
             f'{lecture["lecturer"]}\n'
         if lecture['note']:
-            weekdays_answer[lecture['dayOfWeek'] - 1] += f'_{lecture["note"]}_\n'
+            answer += f'_{lecture["note"]}_\n'
         if lecture['url1']:
-            weekdays_answer[lecture['dayOfWeek'] - 1] += f'{lecture["url1"]}\n'
-        weekdays_answer[lecture['dayOfWeek'] - 1] += '\n\n'
+            answer += f'{lecture["url1"]}\n'
+        answer += '\n\n'
 
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button1 = types.KeyboardButton("Поменять студента")
-    keyboard.add(button1)
-
-    if not any(weekdays_have_lessons):
-        bot.send_message(user.telegram_id, "Похоже, что у вас нет пар, радуйтесь:) или тревожьтесь!", reply_markup=keyboard)
-
-    for weekday, bo in zip(weekdays_answer, weekdays_have_lessons):
-        if bo:
-            bot.send_message(user.telegram_id, weekday, disable_web_page_preview=True, parse_mode="Markdown", reply_markup=keyboard)
+    if len(response) != 0:
+        bot.send_message(user.telegram_id, answer, disable_web_page_preview=True, parse_mode="Markdown", reply_markup=keyboard)
+        return True
+    elif user.get_show_empty_day(dt_.weekday()):
+        answer += "Похоже, что у вас нет пар, радуйтесь:)"
+        bot.send_message(user.telegram_id, answer, disable_web_page_preview=True, parse_mode="Markdown", reply_markup=keyboard)
+    else:
+        return False
 
 
 @bot.message_handler(func=lambda message: message.text == "Поменять студента")
@@ -113,6 +137,26 @@ def change_student(message: types.Message):
     bot.send_message(message.from_user.id, "Введите имя студента, расписание которого вам нужно", reply_markup=types.ReplyKeyboardRemove())
     d.dump()
 
+
+@bot.message_handler(func=lambda message: message.text == "Изменить режим отображения")
+def change_print_mode(message: types.Message):
+    d[message.from_user.id].stage = 2
+    inline_keyboard = types.InlineKeyboardMarkup()
+    for c, i in enumerate(modes_of_print, 0):
+        inline_keyboard.add(types.InlineKeyboardButton(i, callback_data=str(c)))
+    bot.send_message(message.from_user.id, "Выберите режим отображения расписания:", reply_markup=inline_keyboard)
+    d.dump()
+
+
+@bot.callback_query_handler(func=lambda call: d[call.from_user.id].stage == 2)
+def change_print_mode_callback(call: types.CallbackQuery):
+    d[call.from_user.id].mode = int(call.data)
+    d[call.from_user.id].stage = 1
+    d.dump()
+    choice_the_mode_of_print(d[call.from_user.id])
+
+
 if __name__ == '__main__':
+    init_keyboard_settings()
     ml.load_language_packs()
     bot.infinity_polling()
