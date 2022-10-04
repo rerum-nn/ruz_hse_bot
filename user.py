@@ -1,6 +1,4 @@
 import multilangual as ml
-from ruz_exceptions import WrongLanguage
-
 
 class User:
     '''
@@ -16,12 +14,13 @@ class User:
         current user`s ruz id
     '''
 
-    __telegram_id = ''
-    __language = ""
-    __ruz_id = ''
-    __stage = 0
-    __mode = 0
-    __show_empty_days = [True]*6 + [False]
+    def __init__(self, telegram_id='', language="ru"):
+        self.__telegram_id = telegram_id
+        self.language = language
+        self.__ruz_id = 0
+        self.__stage = 0
+        self.__mode = 0
+        self.__show_empty_days = [True]*6 + [False]
 
     @property
     def telegram_id(self) -> str:
@@ -41,16 +40,13 @@ class User:
     def language(self, lang: str) -> None:
         '''
         Changes the language pack for the user, if there is no language pack,
-        then raise the WrongLanguage exception
+        then language pack is en
         :param lang:
         '''
         if lang in ml.languages:
             self.__language = lang
         else:
-            wl = WrongLanguage
-            wl.language = lang
-            wl.telegram_id = self.__telegram_id
-            raise wl
+            self.__language = "en"
 
     @property
     def ruz_id(self) -> str:
@@ -81,13 +77,6 @@ class User:
     @mode.setter
     def mode(self, value):
         self.__mode = value
-
-    def __init__(self, telegram_id='', language="ru"):
-        self.__telegram_id = telegram_id
-        self.language = language
-        self.__stage = 0
-        self.__mode = 0
-        self.__show_empty_days = [True]*6 + [False]
 
     @staticmethod
     def load_from_dict(d: dict):

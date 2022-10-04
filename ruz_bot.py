@@ -30,7 +30,7 @@ def init_keyboard_settings():
 
 @bot.message_handler(commands=['start'])
 def start_message(message: types.Message):
-    user = User(str(message.from_user.id), ml.select_language_or_default(message.from_user.language_code))
+    user = User(str(message.from_user.id), message.from_user.language_code)
     d.add_new_user(user)
     d.dump()
     bot.send_message(message.chat.id, get_str_for_user(user, 'Hello'))

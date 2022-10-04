@@ -2,8 +2,6 @@ import requests
 
 
 class Search:
-    __data = []
-
     @property
     def data(self):
         return self.__data

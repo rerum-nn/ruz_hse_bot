@@ -5,11 +5,6 @@ from user import User
 
 
 class DatabaseOfUsers:
-
-    __users = []
-    __count_of_users = 0
-    __path_to_database = ''
-
     def __init__(self, path: str):
         self.__users = []
         self.__count_of_users = 0
