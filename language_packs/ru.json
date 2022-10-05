@@ -6,6 +6,18 @@
   "Choice student": "Выберите студента",
   "Successfully choice": "Выбрано расписание для студента",
 
+  "Weekly schedule": "Еженедельное расписание",
+  "Daily schedule": "Ежедневное расписание",
+
+  "Change a student": "Поменять студента",
+  "Change the display mode": "Изменить режим отображения",
+
+  "No classes": "Похоже, что у вас нет завтра пар",
+  "No classes on week": "Похоже, что у вас нет пар на этой неделе, радуйтесь:) или тревожьтесь!",
+
+  "Enter the student's name": "Введите имя студента",
+  "Select the display mode": "Выберите режим отображения",
+
   "0_week": "Понедельник",
   "1_week": "Вторник",
   "2_week": "Среда",

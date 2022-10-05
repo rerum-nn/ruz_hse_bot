@@ -6,6 +6,18 @@
   "Choice student": "Choice a student",
   "Successfully choice": "The schedule has been selected for student",
 
+  "Weekly schedule": "Weekly schedule",
+  "Daily schedule": "Daily schedule",
+
+  "Change a student": "Change a student",
+  "Change the display mode": "Change the display mode",
+
+  "No classes": "It looks like you don't have classes tomorrow",
+  "No classes on week": "It looks like you have no classes this week, rejoice :) or worry!",
+
+  "Enter the student's name": "Enter the student's name",
+  "Select the display mode": "Select the display mode",
+
   "0_week": "Monday",
   "1_week": "Tuesday",
   "2_week": "Wednesday",

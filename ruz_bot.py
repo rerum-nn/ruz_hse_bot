@@ -16,12 +16,12 @@ search = Search()
 d = DatabaseOfUsers('databases/database.json')
 bot = telebot.TeleBot(token)
 
-modes_of_print = ["Еженедельное расписание", "Ежедневное расписание"]
+modes_of_print = ["Weekly schedule", "Daily schedule"]
 
 
-def init_keyboard_settings():
-    main_button1 = types.KeyboardButton("Поменять студента")
-    main_button2 = types.KeyboardButton("Изменить режим отображения")
+def init_keyboard_settings(user: User):
+    main_button1 = types.KeyboardButton(get_str_for_user(user, "Change a student"))
+    main_button2 = types.KeyboardButton(get_str_for_user(user, "Change the display mode"))
     menu_keyboard.add(main_button1)
     menu_keyboard.add(main_button2)
     menu_keyboard.resize_keyboard = True
@@ -33,7 +33,8 @@ def start_message(message: types.Message):
     user = User(str(message.from_user.id), message.from_user.language_code)
     d.add_new_user(user)
     d.dump()
-    bot.send_message(message.chat.id, get_str_for_user(user, 'Hello'))
+    init_keyboard_settings(user)
+    bot.send_message(message.chat.id, get_str_for_user(user, 'Hello'), reply_markup=types.ReplyKeyboardRemove())
 
 
 @bot.message_handler(func=lambda message: d.get_user_information_by_id(str(message.from_user.id)).stage == 0)
@@ -86,7 +87,7 @@ def show_everyday_schedule_for_user(user: User):
     day = (datetime.today() + dt.timedelta(hours=3)).date()
 
     if not show_schedule_on_day(user, day, menu_keyboard):
-        bot.send_message(user.telegram_id, "Похоже, что у вас нет завтра пар", reply_markup=menu_keyboard)
+        bot.send_message(user.telegram_id, get_str_for_user(user, "No classes"), reply_markup=menu_keyboard)
 
 
 def show_week_schedule_for_user(user: User):
@@ -99,7 +100,7 @@ def show_week_schedule_for_user(user: User):
         lessons_on_week = show_schedule_on_day(user, week_day, menu_keyboard) or lessons_on_week
 
     if not lessons_on_week:
-        bot.send_message(user.telegram_id, "Похоже, что у вас нет пар на этой неделе, радуйтесь:) или тревожьтесь!", reply_markup=menu_keyboard)
+        bot.send_message(user.telegram_id, get_str_for_user(user, "No class on week"), reply_markup=menu_keyboard)
 
 
 def show_schedule_on_day(user: User, dt_: date, keyboard = types.ReplyKeyboardRemove()):
@@ -122,29 +123,35 @@ def show_schedule_on_day(user: User, dt_: date, keyboard = types.ReplyKeyboardRe
         answer += '\n\n'
 
     if len(response) != 0:
-        bot.send_message(user.telegram_id, answer, disable_web_page_preview=True, parse_mode="Markdown", reply_markup=keyboard)
+        bot.send_message(user.telegram_id, answer, disable_web_page_preview=True, parse_mode="Markdown",
+                         reply_markup=keyboard)
         return True
     elif user.get_show_empty_day(dt_.weekday()):
-        answer += "Похоже, что у вас нет пар, радуйтесь:)"
-        bot.send_message(user.telegram_id, answer, disable_web_page_preview=True, parse_mode="Markdown", reply_markup=keyboard)
+        answer += get_str_for_user(user, "No classes")
+        bot.send_message(user.telegram_id, answer, disable_web_page_preview=True, parse_mode="Markdown",
+                         reply_markup=keyboard)
     else:
         return False
 
 
-@bot.message_handler(func=lambda message: message.text == "Поменять студента")
+@bot.message_handler(func=lambda message: message.text == get_str_for_user(d[message.from_user.id], "Change a student"))
 def change_student(message: types.Message):
     d[message.from_user.id].stage = 0
-    bot.send_message(message.from_user.id, "Введите имя студента, расписание которого вам нужно", reply_markup=types.ReplyKeyboardRemove())
+    bot.send_message(message.from_user.id, get_str_for_user(d[message.from_user.id], "Enter the student's name"),
+                     reply_markup=types.ReplyKeyboardRemove())
     d.dump()
 
 
-@bot.message_handler(func=lambda message: message.text == "Изменить режим отображения")
+@bot.message_handler(func=lambda message: message.text == get_str_for_user(d[message.from_user.id],
+                                                                           "Change the display mode"))
 def change_print_mode(message: types.Message):
     d[message.from_user.id].stage = 2
     inline_keyboard = types.InlineKeyboardMarkup()
     for c, i in enumerate(modes_of_print, 0):
-        inline_keyboard.add(types.InlineKeyboardButton(i, callback_data=str(c)))
-    bot.send_message(message.from_user.id, "Выберите режим отображения расписания:", reply_markup=inline_keyboard)
+        inline_keyboard.add(types.InlineKeyboardButton(get_str_for_user(d[message.from_user.id], i),
+                                                       callback_data=str(c)))
+    bot.send_message(message.from_user.id, get_str_for_user(d[message.from_user.id], "Select the display mode"),
+                     reply_markup=inline_keyboard)
     d.dump()
 
 
@@ -157,6 +164,5 @@ def change_print_mode_callback(call: types.CallbackQuery):
 
 
 if __name__ == '__main__':
-    init_keyboard_settings()
     ml.load_language_packs()
     bot.infinity_polling()
