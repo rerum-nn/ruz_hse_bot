@@ -100,7 +100,7 @@ def show_week_schedule_for_user(user: User):
         lessons_on_week = show_schedule_on_day(user, week_day, menu_keyboard) or lessons_on_week
 
     if not lessons_on_week:
-        bot.send_message(user.telegram_id, get_str_for_user(user, "No class on week"), reply_markup=menu_keyboard)
+        bot.send_message(user.telegram_id, get_str_for_user(user, "No classes on week"), reply_markup=menu_keyboard)
 
 
 def show_schedule_on_day(user: User, dt_: date, keyboard = types.ReplyKeyboardRemove()):
